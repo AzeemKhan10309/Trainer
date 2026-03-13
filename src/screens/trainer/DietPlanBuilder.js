@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, FlatList,
+  TextInput,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
 import { Card, Button, MacroBar, SectionHeader, Avatar, ScreenHeader } from '../../components/ui';
 import { DIET_PLANS, CLIENTS } from '../../data/mockData';
-import { spacing, typography, radius } from '../../theme/colors';
+import { typography } from '../../theme/colors';
 
 const MEAL_TYPES = ['Breakfast', 'Morning Snack', 'Lunch', 'Afternoon Snack', 'Dinner'];
 const MEAL_ICONS = { 'Breakfast': '🌅', 'Morning Snack': '🍎', 'Lunch': '🥗', 'Afternoon Snack': '🥤', 'Dinner': '🌙' };
@@ -16,7 +17,6 @@ export default function DietPlanBuilder() {
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState('plans');
   const [selectedPlan, setSelectedPlan] = useState(DIET_PLANS[0]);
-  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const tabs = ['plans', 'create'];
 
@@ -115,8 +115,8 @@ export default function DietPlanBuilder() {
                               {meal.calories} kcal • {meal.protein}g protein
                             </Text>
                             <View style={styles.foodItems}>
-                              {meal.items.map((item, i) => (
-                                <View key={i} style={styles.foodItem}>
+                              {meal.items.map((item, idx) => (
+                                <View key={idx} style={styles.foodItem}>
                                   <Text style={{ color: theme.text.muted, fontSize: 10 }}>•</Text>
                                   <Text style={[typography.caption, { color: theme.text.secondary, marginLeft: 6 }]}>{item}</Text>
                                 </View>
@@ -169,8 +169,8 @@ function CreatePlanForm({ theme, onSave }) {
 
         {/* Macro inputs */}
         <View style={styles.macroRow}>
-          {['Protein', 'Carbs', 'Fat'].map((m, i) => (
-            <View key={m} style={{ flex: 1, marginHorizontal: i === 1 ? 8 : 0 }}>
+          {['Protein', 'Carbs', 'Fat'].map((m, idx) => (
+            <View key={m} style={{ flex: 1, marginHorizontal: idx === 1 ? 8 : 0 }}>
               <Text style={[typography.label, { color: theme.text.muted, marginBottom: 4 }]}>{m} (g)</Text>
               <View style={[styles.formInput, { backgroundColor: theme.bg.input, borderColor: theme.border.default }]}>
                 <TextInput keyboardType="numeric" placeholder="0" placeholderTextColor={theme.text.muted} style={{ color: theme.text.primary, fontSize: 15 }} />
@@ -205,7 +205,7 @@ function CreatePlanForm({ theme, onSave }) {
         })}
       </View>
 
-      {meals.map((meal, i) => (
+      {meals.map((meal) => (
         <Card key={meal.id} style={{ marginTop: 12 }}>
           <View style={styles.mealHeader2}>
             <Text style={{ fontSize: 20 }}>{MEAL_ICONS[meal.type]}</Text>
@@ -230,6 +230,27 @@ function CreatePlanForm({ theme, onSave }) {
     </ScrollView>
   );
 }
+
+CreatePlanForm.propTypes = {
+  theme: PropTypes.shape({
+    text: PropTypes.shape({
+      primary: PropTypes.string,
+      secondary: PropTypes.string,
+      muted: PropTypes.string,
+    }),
+    bg: PropTypes.shape({
+      input: PropTypes.string,
+      elevated: PropTypes.string,
+    }),
+    border: PropTypes.shape({
+      default: PropTypes.string,
+    }),
+    accent: PropTypes.shape({
+      primary: PropTypes.string,
+    }),
+  }).isRequired,
+  onSave: PropTypes.func.isRequired,
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1 },

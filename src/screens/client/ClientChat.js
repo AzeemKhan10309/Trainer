@@ -3,11 +3,11 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
-import { Avatar, ScreenHeader } from '../../components/ui';
+import { Avatar } from '../../components/ui'; // Removed unused ScreenHeader
 import { MESSAGES } from '../../data/mockData';
-import { typography, spacing, radius } from '../../theme/colors';
+import { typography } from '../../theme/colors'; // Removed unused spacing, radius
 
 const QUICK_REPLIES = [
   'Got it! 👍', 'On my way 🏃', 'Completed! ✅', 'Question about my plan?', 'Feeling great 💪',
@@ -42,7 +42,9 @@ export default function ClientChat() {
         </View>
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={[typography.h4, { color: theme.text.primary }]}>Marcus Chen</Text>
-          <Text style={[typography.caption, { color: theme.status.success }]}>● Your Trainer • Online</Text>
+          <Text style={[typography.caption, { color: theme.status.success }]}>
+            ● Your Trainer • Online
+          </Text>
         </View>
         <TouchableOpacity style={[styles.iconBtn, { backgroundColor: theme.bg.elevated }]}>
           <Text style={{ fontSize: 18 }}>📞</Text>
@@ -76,10 +78,10 @@ export default function ClientChat() {
                   ? { backgroundColor: theme.accent.primary, borderBottomRightRadius: 4 }
                   : { backgroundColor: theme.bg.card, borderBottomLeftRadius: 4, borderColor: theme.border.subtle, borderWidth: 1 }
               ]}>
-                <Text style={[{ fontSize: 14, lineHeight: 20 }, { color: isMe ? '#000' : theme.text.primary }]}>
+                <Text style={{ fontSize: 14, lineHeight: 20, color: isMe ? '#000' : theme.text.primary }}>
                   {msg.text}
                 </Text>
-                <Text style={[{ fontSize: 10, marginTop: 4 }, { color: isMe ? '#00000060' : theme.text.muted }]}>
+                <Text style={{ fontSize: 10, marginTop: 4, color: isMe ? '#00000060' : theme.text.muted }}>
                   {msg.time} {isMe ? '✓✓' : ''}
                 </Text>
               </View>
@@ -100,7 +102,7 @@ export default function ClientChat() {
             onPress={() => sendMessage(r)}
             style={[styles.quickBtn, { backgroundColor: theme.bg.elevated, borderColor: theme.border.default }]}
           >
-            <Text style={[{ color: theme.text.secondary, fontSize: 13 }]}>{r}</Text>
+            <Text style={{ color: theme.text.secondary, fontSize: 13 }}>{r}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -116,7 +118,7 @@ export default function ClientChat() {
             onChangeText={setMessage}
             placeholder="Message Marcus..."
             placeholderTextColor={theme.text.muted}
-            style={[{ color: theme.text.primary, fontSize: 14, flex: 1 }]}
+            style={{ color: theme.text.primary, fontSize: 14, flex: 1 }}
             multiline
             onSubmitEditing={() => sendMessage()}
           />

@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
-import { LineChart, BarChart } from 'react-native-chart-kit';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LineChart, BarChart } from '../../components/charts';
+import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
 import { Card, StatCard, SectionHeader, Avatar, ScreenHeader } from '../../components/ui';
 import { ANALYTICS_DATA, PROGRESS_DATA } from '../../data/mockData';
-import { spacing, typography, radius } from '../../theme/colors';
+import { typography } from '../../theme/colors';
 
 const { width } = Dimensions.get('window');
 
@@ -22,7 +22,6 @@ const chartConfig = (theme) => ({
 
 export default function TrainerAnalytics() {
   const { theme } = useTheme();
-  const [period, setPeriod] = useState('month');
 
   const monthlyLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
 
@@ -109,7 +108,7 @@ export default function TrainerAnalytics() {
         {/* Meal Compliance per Client */}
         <SectionHeader title="Meal Compliance Rate" />
         <Card style={styles.complianceCard}>
-          {ANALYTICS_DATA.mealComplianceByClient.map((entry, i) => (
+          {ANALYTICS_DATA.mealComplianceByClient.map((entry) => (
             <View key={entry.client} style={styles.complianceRow}>
               <Text style={[typography.body, { color: theme.text.secondary, width: 60 }]}>{entry.client}</Text>
               <View style={[styles.compBar, { backgroundColor: theme.bg.elevated, flex: 1, marginHorizontal: 12 }]}>

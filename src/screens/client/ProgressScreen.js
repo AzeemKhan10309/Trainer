@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions,
 } from 'react-native';
-import { LineChart, BarChart } from 'react-native-chart-kit';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LineChart, BarChart } from '../../components/charts';
+import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { Card, StatCard, SectionHeader, ScreenHeader, Button } from '../../components/ui';
+import { Card, SectionHeader, ScreenHeader, Button } from '../../components/ui';
 import { PROGRESS_DATA } from '../../data/mockData';
-import { spacing, typography, radius } from '../../theme/colors';
+import { typography } from '../../theme/colors';
 
 const { width } = Dimensions.get('window');
 
@@ -37,9 +37,7 @@ export default function ProgressScreen() {
   const [activeTab, setActiveTab] = useState('weight');
 
   const tabs = ['weight', 'nutrition', 'body'];
-
   const weightChange = PROGRESS_DATA.weight[PROGRESS_DATA.weight.length - 1].value - PROGRESS_DATA.weight[0].value;
-  const totalLost = user.weight - (user.weight + weightChange);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg.primary }]}>
@@ -132,30 +130,6 @@ export default function ProgressScreen() {
                   yAxisSuffix=" kg"
                 />
               </Card>
-
-              <SectionHeader title="Weight Log" />
-              {PROGRESS_DATA.weight.map((entry, i) => {
-                const prev = PROGRESS_DATA.weight[i - 1];
-                const change = prev ? (entry.value - prev.value).toFixed(1) : null;
-                const isGain = change > 0;
-                return (
-                  <Card key={entry.date} style={styles.logRow}>
-                    <View style={styles.logContent}>
-                      <View style={[styles.logDot, { backgroundColor: i === PROGRESS_DATA.weight.length - 1 ? theme.accent.primary : theme.bg.elevated }]} />
-                      <Text style={[typography.body, { color: theme.text.secondary, flex: 1 }]}>{entry.date}</Text>
-                      <Text style={[typography.h4, { color: theme.text.primary }]}>{entry.value} kg</Text>
-                      {change && (
-                        <Text style={[typography.caption, {
-                          color: isGain ? theme.status.error : theme.accent.primary,
-                          marginLeft: 8, fontWeight: '700',
-                        }]}>
-                          {isGain ? '+' : ''}{change}
-                        </Text>
-                      )}
-                    </View>
-                  </Card>
-                );
-              })}
             </>
           )}
 
@@ -167,9 +141,7 @@ export default function ProgressScreen() {
                 <BarChart
                   data={{
                     labels: PROGRESS_DATA.calories.map(c => c.day),
-                    datasets: [{
-                      data: PROGRESS_DATA.calories.map(c => c.consumed),
-                    }],
+                    datasets: [{ data: PROGRESS_DATA.calories.map(c => c.consumed) }],
                   }}
                   width={width - 64}
                   height={200}
@@ -178,32 +150,9 @@ export default function ProgressScreen() {
                     color: (opacity = 1) => `rgba(0, 217, 245, ${opacity})`,
                   }}
                   fromZero
-                  showValuesOnTopOfBars={false}
                   style={{ borderRadius: 12 }}
                 />
               </Card>
-
-              <SectionHeader title="Daily Breakdown" />
-              {PROGRESS_DATA.calories.map((day, i) => {
-                const pct = Math.round((day.consumed / day.target) * 100);
-                const color = pct >= 90 && pct <= 110 ? theme.accent.primary : pct > 110 ? theme.status.error : theme.accent.gold;
-                return (
-                  <Card key={day.day} style={styles.calRow}>
-                    <View style={styles.calRowContent}>
-                      <Text style={[typography.body, { color: theme.text.secondary, width: 40 }]}>{day.day}</Text>
-                      <View style={[styles.calBarTrack, { backgroundColor: theme.bg.elevated, flex: 1, marginHorizontal: 12 }]}>
-                        <View style={[styles.calBarFill, { backgroundColor: color, width: `${Math.min(pct, 100)}%` }]} />
-                      </View>
-                      <Text style={[typography.body, { color: theme.text.primary, fontWeight: '700', width: 60, textAlign: 'right' }]}>
-                        {day.consumed}
-                      </Text>
-                      <Text style={[typography.caption, { color, fontWeight: '700', width: 40, textAlign: 'right' }]}>
-                        {pct}%
-                      </Text>
-                    </View>
-                  </Card>
-                );
-              })}
             </>
           )}
 
@@ -230,7 +179,7 @@ export default function ProgressScreen() {
                         <Text style={[typography.caption, { color: theme.text.muted }]}>Start</Text>
                         <Text style={[typography.h4, { color: theme.text.secondary }]}>{part.start}{part.unit}</Text>
                       </View>
-                      <View style={[styles.measureArrow]}>
+                      <View style={styles.measureArrow}>
                         <Text style={{ color: theme.accent.primary, fontSize: 20 }}>→</Text>
                       </View>
                       <View style={styles.measureVal}>
@@ -286,13 +235,6 @@ const styles = StyleSheet.create({
   tabInactiveText: { fontWeight: '600', fontSize: 14 },
   padded: { paddingHorizontal: 20 },
   chartCard: { padding: 16, marginBottom: 24 },
-  logRow: { padding: 14, marginBottom: 8 },
-  logContent: { flexDirection: 'row', alignItems: 'center' },
-  logDot: { width: 10, height: 10, borderRadius: 5, marginRight: 12 },
-  calRow: { padding: 14, marginBottom: 8 },
-  calRowContent: { flexDirection: 'row', alignItems: 'center' },
-  calBarTrack: { height: 10, borderRadius: 5, overflow: 'hidden' },
-  calBarFill: { height: '100%', borderRadius: 5 },
   measureCard: { padding: 16, marginBottom: 10 },
   measureHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   measureValues: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
