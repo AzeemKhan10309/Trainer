@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Animated, Alert,
+  Animated,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
-import { Card, MacroBar, Badge, ScreenHeader, Button } from '../../components/ui';
+import { Card, MacroBar, ScreenHeader } from '../../components/ui'; // removed Badge, Button
 import { DIET_PLANS } from '../../data/mockData';
-import { spacing, typography, radius } from '../../theme/colors';
+import { typography } from '../../theme/colors';
 
 const MEAL_ICONS = { 'Breakfast': '🌅', 'Morning Snack': '🍎', 'Lunch': '🥗', 'Afternoon Snack': '🥤', 'Dinner': '🌙' };
 const MEAL_COLORS = { 'Breakfast': '#F59E0B', 'Morning Snack': '#EF4444', 'Lunch': '#00F5A0', 'Afternoon Snack': '#8B5CF6', 'Dinner': '#00D9F5' };

@@ -3,11 +3,11 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
 import { Card, Avatar, ScreenHeader } from '../../components/ui';
 import { MESSAGES } from '../../data/mockData';
-import { spacing, typography, radius } from '../../theme/colors';
+import { typography } from '../../theme/colors'; // removed spacing, radius
 
 export default function TrainerChat() {
   const { theme } = useTheme();

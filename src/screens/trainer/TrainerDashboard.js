@@ -1,21 +1,17 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Dimensions, FlatList,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { Card, Avatar, Badge, StatCard, SectionHeader, ScreenHeader } from '../../components/ui';
+import { Card, Avatar, Badge, StatCard, SectionHeader } from '../../components/ui';
 import { CLIENTS, NOTIFICATIONS, ANALYTICS_DATA } from '../../data/mockData';
-import { spacing, typography, radius } from '../../theme/colors';
+import { typography } from '../../theme/colors'; // removed spacing, radius
 
-const { width } = Dimensions.get('window');
-
-export default function TrainerDashboard({ navigation }) {
+export default function TrainerDashboard() {
   const { theme } = useTheme();
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState('today');
 
   const unreadNotifs = NOTIFICATIONS.filter(n => !n.read).length;
 
@@ -61,7 +57,7 @@ export default function TrainerDashboard({ navigation }) {
           style={styles.heroBanner}
         >
           <View style={styles.heroContent}>
-            <Text style={styles.heroLabel}>TODAY'S OVERVIEW</Text>
+            <Text style={styles.heroLabel}>TODAY&apos;S OVERVIEW</Text>
             <Text style={styles.heroValue}>{todayStats.mealsCompleted}/{todayStats.totalMeals}</Text>
             <Text style={styles.heroSub}>Meals completed across all clients</Text>
           </View>
@@ -184,7 +180,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', borderBottomWidth: 1 },
   headerLeft: {},
-  headerRight: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   iconBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   notifBadge: { position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   notifBadgeText: { color: '#fff', fontSize: 9, fontWeight: '800' },
@@ -197,7 +193,7 @@ const styles = StyleSheet.create({
   heroPill: { backgroundColor: '#00000020', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
   padded: { paddingHorizontal: 20 },
   statsRow: { flexDirection: 'row' },
-  notifList: { gap: 10, marginBottom: 24 },
+  notifList: { marginBottom: 24 },
   notifCard: { padding: 14 },
   notifRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   notifIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },

@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
-import { Card, Badge, SectionHeader, ScreenHeader, Button } from '../../components/ui';
+import { Card, Badge, SectionHeader, ScreenHeader } from '../../components/ui';
 import { WORKOUT_PLANS } from '../../data/mockData';
-import { spacing, typography, radius } from '../../theme/colors';
-
-const { width } = Dimensions.get('window');
+import { typography } from '../../theme/colors';
 
 const MUSCLE_ICONS = {
   'Bench Press': '🏋️', 'Incline Dumbbell Press': '💪', 'Overhead Press': '🙆',
@@ -36,7 +34,7 @@ export default function WorkoutView() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg.primary }]}>
-      <ScreenHeader title="Workout" subtitle="TODAY'S TRAINING" />
+      <ScreenHeader title="Workout" subtitle="TODAY&apos;S TRAINING" />
 
       {notification && (
         <View style={[styles.toast, { backgroundColor: theme.accent.primary }]}>
@@ -51,7 +49,7 @@ export default function WorkoutView() {
           style={styles.banner}
         >
           <View style={styles.bannerContent}>
-            <Text style={[typography.label, { color: theme.accent.primary }]}>TODAY'S SESSION</Text>
+            <Text style={[typography.label, { color: theme.accent.primary }]}>TODAY&apos;S SESSION</Text>
             <Text style={[typography.h1, { color: '#fff', marginTop: 4 }]}>{plan.currentDay}</Text>
             <Text style={[typography.body, { color: '#A0A0C0', marginTop: 4 }]}>{totalCount} exercises • ~45 min</Text>
 
