@@ -1,17 +1,12 @@
-// src/context/AuthContext.tsx
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
+import { firebaseAuth, db, nowTimestamp } from '../services/firebase';
 
-// User types
 interface Trainer {
   id: string;
   role: 'trainer';
   name: string;
   email: string;
   avatar: string | null;
-  specialization: string;
-  clients: number;
-  rating: number;
-  experience: string;
 }
 
 interface Client {
@@ -20,107 +15,112 @@ interface Client {
   name: string;
   email: string;
   avatar: string | null;
-  trainer: string;
-  goal: string;
-  weight: number;
-  targetWeight: number;
-  startDate: string;
+  trainerId?: string;
 }
 
 type User = Trainer | Client | null;
 
-// Signup data type
 interface SignupData {
   role: 'trainer' | 'client';
-  id?: string;
   name?: string;
   email?: string;
-  avatar?: string | null;
-  specialization?: string;
-  clients?: number;
-  rating?: number;
-  experience?: string;
-  trainer?: string;
-  goal?: string;
-  weight?: number;
-  targetWeight?: number;
-  startDate?: string;
+  password?: string;
+  trainerId?: string;
 }
 
-// Context type
 interface AuthContextType {
   user: User;
   loading: boolean;
   login: (email: string, password: string, role: 'trainer' | 'client') => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   signup: (data: SignupData) => Promise<void>;
 }
 
-// Mock data
-const MOCK_TRAINER: Trainer = {
-  id: 'trainer_001',
-  role: 'trainer',
-  name: 'Marcus Chen',
-  email: 'marcus@fitpro.com',
-  avatar: null,
-  specialization: 'Strength & Nutrition',
-  clients: 12,
-  rating: 4.9,
-  experience: '8 years',
-};
-
-const MOCK_CLIENT: Client = {
-  id: 'client_001',
-  role: 'client',
-  name: 'Ahmed Al-Hassan',
-  email: 'ahmed@email.com',
-  avatar: null,
-  trainer: 'Marcus Chen',
-  goal: 'Weight Loss',
-  weight: 88,
-  targetWeight: 78,
-  startDate: '2024-01-15',
-};
-
-// Create context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Provider
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthContextProvider = ({ children }: AuthProviderProps) => {
+export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = firebaseAuth.onAuthStateChanged(async (firebaseUser) => {
+      if (!firebaseUser) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      const profileDoc = await db.collection('users').doc(firebaseUser.uid).get();
+      if (!profileDoc.exists) {
+        setUser({
+          id: firebaseUser.uid,
+          role: 'client',
+          name: firebaseUser.displayName || 'New User',
+          email: firebaseUser.email || '',
+          avatar: firebaseUser.photoURL,
+        });
+        setLoading(false);
+        return;
+      }
+
+      const profile = profileDoc.data() || {};
+      setUser({
+        id: firebaseUser.uid,
+        role: profile.role === 'trainer' ? 'trainer' : 'client',
+        name: profile.name || firebaseUser.displayName || 'User',
+        email: profile.email || firebaseUser.email || '',
+        avatar: profile.avatar || firebaseUser.photoURL || null,
+        trainerId: profile.trainerId,
+      } as User);
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
 
   const login = async (email: string, password: string, role: 'trainer' | 'client') => {
     setLoading(true);
-    await new Promise<void>((resolve) => setTimeout(resolve, 1000)); // Simulate API
-    setUser(role === 'trainer' ? MOCK_TRAINER : MOCK_CLIENT);
+    const { user: authUser } = await firebaseAuth.signInWithEmailAndPassword(email.trim(), password);
+    const profile = (await db.collection('users').doc(authUser.uid).get()).data();
+    
+    if (profile?.role && profile.role !== role) {
+      await firebaseAuth.signOut();
+      setLoading(false);
+      throw new Error(`This account is registered as ${profile.role}, not ${role}.`);
+    }
     setLoading(false);
   };
-
-  const logout = () => setUser(null);
 
   const signup = async (data: SignupData) => {
     setLoading(true);
-    await new Promise<void>((resolve) => setTimeout(resolve, 1200)); // Simulate API
+    const { email = '', password = '', name = '' } = data;
+    const credentials = await firebaseAuth.createUserWithEmailAndPassword(email.trim(), password);
 
-    if (data.role === 'trainer') setUser({ ...MOCK_TRAINER, ...data, role: 'trainer' });
-    else setUser({ ...MOCK_CLIENT, ...data, role: 'client' });
+    await credentials.user.updateProfile({ displayName: name });
+
+    await db.collection('users').doc(credentials.user.uid).set({
+      role: data.role,
+      name,
+      email: email.trim(),
+      avatar: null,
+      trainerId: data.trainerId || null,
+      createdAt: nowTimestamp(),
+      updatedAt: nowTimestamp(),
+    });
 
     setLoading(false);
   };
 
-  return (
-    <AuthContext.Provider value={{ user, loading, login, logout, signup }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const logout = async () => {
+    await firebaseAuth.signOut();
+    setUser(null);
+  };
+
+  const value = useMemo(() => ({ user, loading, login, logout, signup }), [user, loading]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Custom hook
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth must be used within AuthContextProvider');

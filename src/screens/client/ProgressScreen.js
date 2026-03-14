@@ -1,217 +1,81 @@
-import React, { useState } from 'react';
-import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions,
-} from 'react-native';
-import { LineChart, BarChart } from '../../components/charts';
-import LinearGradient from 'react-native-linear-gradient';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { Card, SectionHeader, ScreenHeader, Button } from '../../components/ui';
-import { PROGRESS_DATA } from '../../data/mockData';
-import { typography } from '../../theme/colors';
-
-const { width } = Dimensions.get('window');
-
-const chartConfig = (theme) => ({
-  backgroundColor: theme.bg.card,
-  backgroundGradientFrom: theme.bg.card,
-  backgroundGradientTo: theme.bg.card,
-  decimalPlaces: 1,
-  color: (opacity = 1) => `rgba(0, 245, 160, ${opacity})`,
-  labelColor: () => theme.text.muted,
-  style: { borderRadius: 16 },
-  propsForDots: { r: '5', strokeWidth: '2', stroke: '#00F5A0' },
-});
-
-const BODY_PARTS = [
-  { label: 'Chest', start: 102, current: 98, unit: 'cm' },
-  { label: 'Waist', start: 95, current: 89, unit: 'cm' },
-  { label: 'Hips', start: 108, current: 104, unit: 'cm' },
-  { label: 'Arms', start: 36, current: 38, unit: 'cm' },
-  { label: 'Thighs', start: 62, current: 59, unit: 'cm' },
-];
+import { Card, ScreenHeader } from '../../components/ui';
+import { useClientRealtime } from '../../services/realtime';
 
 export default function ProgressScreen() {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('weight');
+  
+  // Real-time progress data fetch kar rahe hain
+  const { progress } = useClientRealtime(user?.id);
 
-  const tabs = ['weight', 'nutrition', 'body'];
-  const weightChange = PROGRESS_DATA.weight[PROGRESS_DATA.weight.length - 1].value - PROGRESS_DATA.weight[0].value;
+  // Pehli aur aakhri entry nikaal kar delta (difference) calculate kar rahe hain
+  const first = progress.data[0];
+  const last = progress.data[progress.data.length - 1];
+  const delta = first && last ? (last.weight || 0) - (first.weight || 0) : 0;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg.primary }]}>
-      <ScreenHeader title="My Progress" subtitle="TRANSFORMATION" rightIcon="📤" />
+      <ScreenHeader title="Progress" subtitle="Live Transformation Tracking" />
+      
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Summary Card */}
+        <Card>
+          <Text style={{ color: theme.text.primary, fontWeight: '700', fontSize: 16 }}>
+            Overall Weight Change
+          </Text>
+          <Text style={{ 
+            color: delta <= 0 ? theme.accent.primary : theme.status.error, 
+            fontSize: 36, 
+            fontWeight: '800',
+            marginVertical: 8
+          }}>
+            {delta > 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1)} kg
+          </Text>
+          <View style={styles.journeyRow}>
+            <View>
+              <Text style={{ color: theme.text.muted, fontSize: 12 }}>START</Text>
+              <Text style={{ color: theme.text.secondary, fontWeight: '600' }}>{first?.weight || '--'} kg</Text>
+            </View>
+            <Text style={{ color: theme.text.muted, fontSize: 20 }}>→</Text>
+            <View>
+              <Text style={{ color: theme.text.muted, fontSize: 12 }}>CURRENT</Text>
+              <Text style={{ color: theme.accent.primary, fontWeight: '600' }}>{last?.weight || '--'} kg</Text>
+            </View>
+          </View>
+        </Card>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Hero Progress Card */}
-        <LinearGradient colors={['#1A1A2E', '#0F0F1A']} style={styles.heroBanner}>
-          <View style={styles.heroLeft}>
-            <Text style={[typography.label, { color: theme.accent.primary }]}>TOTAL PROGRESS</Text>
-            <Text style={[typography.display, { color: '#fff', marginTop: 4 }]}>
-              {Math.abs(weightChange).toFixed(1)} kg
+        <Text style={[styles.sectionTitle, { color: theme.text.primary }]}>History Log</Text>
+
+        {/* List of past entries */}
+        {(progress.data || []).slice().reverse().map((entry) => (
+          <Card key={entry.id} style={styles.row}>
+            <View style={styles.entryHeader}>
+              <Text style={{ color: theme.text.primary, fontWeight: '600' }}>
+                {new Date(entry.createdAt?.toDate?.() || Date.now()).toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric'
+                })}
+              </Text>
+              <Text style={{ color: theme.accent.primary, fontWeight: '700' }}>
+                {entry.weight} kg
+              </Text>
+            </View>
+            <Text style={{ color: theme.text.secondary, fontSize: 13, marginTop: 4 }}>
+              Daily Intake: {entry.calories || 'N/A'} kcal
             </Text>
-            <Text style={[typography.body, { color: '#A0A0C0' }]}>Lost since Jan 15</Text>
+          </Card>
+        ))}
 
-            {/* Goal Progress */}
-            <View style={styles.goalTrack}>
-              <View style={styles.goalHeader}>
-                <Text style={[typography.caption, { color: '#A0A0C0' }]}>Goal: {user.targetWeight} kg</Text>
-                <Text style={[typography.caption, { color: theme.accent.primary }]}>42%</Text>
-              </View>
-              <View style={[styles.goalBar, { backgroundColor: '#2A2A40' }]}>
-                <LinearGradient
-                  colors={['#00F5A0', '#00C47D']}
-                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                  style={[styles.goalFill, { width: '42%' }]}
-                />
-              </View>
-            </View>
+        {progress.data.length === 0 && (
+          <View style={styles.emptyState}>
+            <Text style={{ color: theme.text.muted }}>No progress entries found yet.</Text>
           </View>
-
-          <View style={styles.heroRight}>
-            {/* Weight Journey */}
-            <View style={styles.weightJourney}>
-              <View style={styles.weightPoint}>
-                <Text style={[typography.h3, { color: '#fff' }]}>{PROGRESS_DATA.weight[0].value}</Text>
-                <Text style={[typography.caption, { color: '#A0A0C0' }]}>Start</Text>
-              </View>
-              <Text style={{ color: theme.accent.primary, fontSize: 24 }}>→</Text>
-              <View style={styles.weightPoint}>
-                <Text style={[typography.h3, { color: theme.accent.primary }]}>
-                  {PROGRESS_DATA.weight[PROGRESS_DATA.weight.length - 1].value}
-                </Text>
-                <Text style={[typography.caption, { color: theme.accent.primary }]}>Now</Text>
-              </View>
-              <Text style={{ color: '#A0A0C0', fontSize: 24 }}>→</Text>
-              <View style={styles.weightPoint}>
-                <Text style={[typography.h3, { color: '#A0A0C0' }]}>{user.targetWeight}</Text>
-                <Text style={[typography.caption, { color: '#A0A0C0' }]}>Goal</Text>
-              </View>
-            </View>
-          </View>
-        </LinearGradient>
-
-        {/* Tab Bar */}
-        <View style={[styles.tabBar, { backgroundColor: theme.bg.elevated }]}>
-          {tabs.map(tab => (
-            <TouchableOpacity key={tab} onPress={() => setActiveTab(tab)} style={{ flex: 1 }}>
-              {activeTab === tab ? (
-                <LinearGradient colors={['#00F5A0', '#00C47D']} style={styles.tabActive}>
-                  <Text style={styles.tabActiveText}>{tab.charAt(0).toUpperCase() + tab.slice(1)}</Text>
-                </LinearGradient>
-              ) : (
-                <View style={styles.tabInactive}>
-                  <Text style={[styles.tabInactiveText, { color: theme.text.muted }]}>
-                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.padded}>
-          {/* Weight Tab */}
-          {activeTab === 'weight' && (
-            <>
-              <SectionHeader title="Weight History" />
-              <Card style={styles.chartCard}>
-                <LineChart
-                  data={{
-                    labels: PROGRESS_DATA.weight.map(p => p.date.split(' ')[1]),
-                    datasets: [{ data: PROGRESS_DATA.weight.map(p => p.value) }],
-                  }}
-                  width={width - 64}
-                  height={220}
-                  chartConfig={chartConfig(theme)}
-                  bezier
-                  style={{ borderRadius: 12 }}
-                  yAxisSuffix=" kg"
-                />
-              </Card>
-            </>
-          )}
-
-          {/* Nutrition Tab */}
-          {activeTab === 'nutrition' && (
-            <>
-              <SectionHeader title="Weekly Calories" />
-              <Card style={styles.chartCard}>
-                <BarChart
-                  data={{
-                    labels: PROGRESS_DATA.calories.map(c => c.day),
-                    datasets: [{ data: PROGRESS_DATA.calories.map(c => c.consumed) }],
-                  }}
-                  width={width - 64}
-                  height={200}
-                  chartConfig={{
-                    ...chartConfig(theme),
-                    color: (opacity = 1) => `rgba(0, 217, 245, ${opacity})`,
-                  }}
-                  fromZero
-                  style={{ borderRadius: 12 }}
-                />
-              </Card>
-            </>
-          )}
-
-          {/* Body Measurements Tab */}
-          {activeTab === 'body' && (
-            <>
-              <SectionHeader title="Body Measurements" action="Update →" />
-              {BODY_PARTS.map(part => {
-                const change = part.current - part.start;
-                const isBetter = part.label === 'Arms' ? change > 0 : change < 0;
-                return (
-                  <Card key={part.label} style={styles.measureCard}>
-                    <View style={styles.measureHeader}>
-                      <Text style={[typography.h4, { color: theme.text.primary, flex: 1 }]}>{part.label}</Text>
-                      <Text style={[typography.caption, {
-                        color: isBetter ? theme.accent.primary : theme.status.error,
-                        fontWeight: '700',
-                      }]}>
-                        {isBetter ? '' : '+'}{change} {part.unit}
-                      </Text>
-                    </View>
-                    <View style={styles.measureValues}>
-                      <View style={styles.measureVal}>
-                        <Text style={[typography.caption, { color: theme.text.muted }]}>Start</Text>
-                        <Text style={[typography.h4, { color: theme.text.secondary }]}>{part.start}{part.unit}</Text>
-                      </View>
-                      <View style={styles.measureArrow}>
-                        <Text style={{ color: theme.accent.primary, fontSize: 20 }}>→</Text>
-                      </View>
-                      <View style={styles.measureVal}>
-                        <Text style={[typography.caption, { color: theme.text.muted }]}>Current</Text>
-                        <Text style={[typography.h4, { color: isBetter ? theme.accent.primary : theme.status.error }]}>
-                          {part.current}{part.unit}
-                        </Text>
-                      </View>
-                    </View>
-                    {/* Change bar */}
-                    <View style={[styles.changeBarTrack, { backgroundColor: theme.bg.elevated }]}>
-                      <View style={[styles.changeBarFill, {
-                        backgroundColor: isBetter ? theme.accent.primary : theme.status.error,
-                        width: `${Math.abs(change / part.start) * 500}%`,
-                        maxWidth: '100%',
-                      }]} />
-                    </View>
-                  </Card>
-                );
-              })}
-
-              <Button
-                title="📸 Add Progress Photo"
-                variant="outline"
-                size="lg"
-                style={{ width: '100%', marginTop: 8 }}
-              />
-            </>
-          )}
-
-          <View style={{ height: 32 }} />
-        </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -219,27 +83,10 @@ export default function ProgressScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  heroBanner: { margin: 20, borderRadius: 20, padding: 24 },
-  heroLeft: { marginBottom: 20 },
-  goalTrack: { marginTop: 16 },
-  goalHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  goalBar: { height: 8, borderRadius: 4, overflow: 'hidden' },
-  goalFill: { height: '100%', borderRadius: 4 },
-  heroRight: {},
-  weightJourney: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  weightPoint: { alignItems: 'center' },
-  tabBar: { flexDirection: 'row', marginHorizontal: 20, borderRadius: 12, padding: 4, marginBottom: 16 },
-  tabActive: { borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
-  tabActiveText: { fontWeight: '700', color: '#000', fontSize: 14 },
-  tabInactive: { paddingVertical: 10, alignItems: 'center' },
-  tabInactiveText: { fontWeight: '600', fontSize: 14 },
-  padded: { paddingHorizontal: 20 },
-  chartCard: { padding: 16, marginBottom: 24 },
-  measureCard: { padding: 16, marginBottom: 10 },
-  measureHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  measureValues: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  measureVal: { flex: 1 },
-  measureArrow: { alignItems: 'center', paddingHorizontal: 12 },
-  changeBarTrack: { height: 6, borderRadius: 3, overflow: 'hidden' },
-  changeBarFill: { height: '100%', borderRadius: 3 },
+  content: { padding: 16 },
+  journeyRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', marginTop: 24, marginBottom: 12 },
+  row: { marginBottom: 10, padding: 16 },
+  entryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  emptyState: { alignItems: 'center', marginTop: 40 },
 });
