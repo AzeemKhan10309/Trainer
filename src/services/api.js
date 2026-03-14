@@ -1,13 +1,11 @@
-// src/services/api.js
-// Axios-based API service for Node.js backend
-
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 export const BASE_URL =
   Platform.OS === "web"
     ? "http://localhost:5000/api"
-    : "http:/192.168.18.246:5000/api"; // Replace with your backend URL
+    : "http://192.168.18.246:5000/api"; // Replace with your backend URL
 
 // ─── Axios instance ─────────────────────────────────────────
 const api = axios.create({

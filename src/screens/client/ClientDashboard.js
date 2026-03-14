@@ -1,82 +1,66 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { Card, Avatar, Badge, MacroBar } from '../../components/ui'; // removed unused StatCard, SectionHeader
-import { DIET_PLANS} from '../../data/mockData'; // removed unused PROGRESS_DATA
+import { Card, Avatar, MacroBar } from '../../components/ui';
+import { useClientRealtime } from '../../services/realtime';
 
 export default function ClientDashboard() {
   const { theme } = useTheme();
   const { user, logout } = useAuth();
+  
+  // Real-time data fetch kar rahe hain
+  const { dietPlan, mealCompletions } = useClientRealtime(user?.id);
 
-  const plan = DIET_PLANS[0];
+  const meals = dietPlan?.meals || [];
+  const completedIds = new Set((mealCompletions.data || []).map((m) => m.mealId));
+  const completedMeals = meals.filter((m) => completedIds.has(m.id)).length;
+  const totalMeals = meals.length || 1;
 
-  const completedMeals = plan.meals.filter(m => m.completed).length;
-  const totalMeals = plan.meals.length;
-  const pct = Math.round((completedMeals / totalMeals) * 100);
-
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-  const caloriesConsumed = plan.meals.filter(m => m.completed).reduce((sum, m) => sum + m.calories, 0);
+  // Totals calculate kar rahe hain based on completed meals
+  const totals = meals.reduce((acc, meal) => {
+    if (completedIds.has(meal.id)) {
+      acc.cal += meal.calories || 0;
+      acc.protein += meal.protein || 0;
+      acc.carbs += meal.carbs || 0;
+      acc.fat += meal.fat || 0;
+    }
+    return acc;
+  }, { cal: 0, protein: 0, carbs: 0, fat: 0 });
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg.primary }]}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border.subtle }]}>
-        <View>
-          <Text style={{ color: theme.accent.primary, letterSpacing: 1, fontSize: 12 }}>{today.toUpperCase()}</Text>
-          <Text style={{ color: theme.text.primary, fontSize: 28, fontWeight: '700' }}>
-            Hey, {user.name.split(' ')[0]}! 👋
-          </Text>
-        </View>
-        <View style={styles.headerRight}>
-          <View style={[styles.streakBadge, { backgroundColor: '#FF6B3520' }]}>
-            <Text style={{ fontSize: 16 }}>🔥</Text>
-            <Text style={{ color: '#FF6B35', fontWeight: '700', marginLeft: 4 }}>14d</Text>
-          </View>
-          <TouchableOpacity onPress={logout} style={[styles.avatarBtn, { backgroundColor: theme.bg.elevated }]}>
-            <Avatar name={user.name} size={36} color={theme.accent.primary} />
-          </TouchableOpacity>
-        </View>
+      {/* Simple Header */}
+      <View style={styles.header}>
+        <Text style={{ color: theme.text.primary, fontSize: 24, fontWeight: '700' }}>
+          Hey {user?.name?.split(' ')[0] || 'Client'}
+        </Text>
+        <TouchableOpacity onPress={logout}>
+          <Avatar name={user?.name || 'Client'} size={36} color={theme.accent.primary} />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Today's Progress Banner */}
-        <LinearGradient
-          colors={pct >= 80 ? ['#00F5A0', '#00C47D'] : pct >= 50 ? ['#F59E0B', '#D97706'] : ['#8B5CF6', '#6D28D9']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={styles.progressBanner}
-        >
-          <View>
-            <Text style={styles.bannerLabel}>TODAY&apos;S MEAL PROGRESS</Text>
-            <Text style={styles.bannerValue}>{completedMeals}/{totalMeals}</Text>
-            <Text style={styles.bannerSub}>{pct}% complete</Text>
-          </View>
-        </LinearGradient>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Progress Card */}
+        <Card>
+          <Text style={{ color: theme.text.primary, fontSize: 18 }}>Meal Progress</Text>
+          <Text style={{ color: theme.accent.primary, fontSize: 34, fontWeight: '800' }}>
+            {completedMeals}/{totalMeals}
+          </Text>
+          <Text style={{ color: theme.text.secondary }}>
+            Calories: {totals.cal} / {dietPlan?.calories || 0} kcal
+          </Text>
+        </Card>
 
-        <View style={styles.padded}>
-          {/* Calorie Summary */}
-          <Card style={styles.calCard}>
-            <View style={styles.calHeader}>
-              <Text style={{ color: theme.text.primary, fontSize: 18, fontWeight: '600' }}>Today&apos;s Nutrition</Text>
-              <Badge label={`${plan.calories} kcal target`} color={theme.accent.primary} />
-            </View>
-            <View style={styles.calNums}>
-              <View style={styles.calItem}>
-                <Text style={{ color: theme.accent.primary, fontSize: 24, fontWeight: '700' }}>{caloriesConsumed}</Text>
-                <Text style={{ color: theme.text.muted, fontSize: 12 }}>CONSUMED</Text>
-              </View>
-              <View style={[styles.calDivider, { backgroundColor: theme.border.default }]} />
-              <View style={styles.calItem}>
-                <Text style={{ color: theme.text.secondary, fontSize: 24, fontWeight: '700' }}>{plan.calories - caloriesConsumed}</Text>
-                <Text style={{ color: theme.text.muted, fontSize: 12 }}>REMAINING</Text>
-              </View>
-            </View>
-            <MacroBar label="Protein" value={plan.meals.filter(m => m.completed).reduce((s, m) => s + m.protein, 0)} max={plan.protein} color="#00F5A0" />
-            <MacroBar label="Carbs" value={plan.meals.filter(m => m.completed).reduce((s, m) => s + m.carbs, 0)} max={plan.carbs} color="#00D9F5" />
-            <MacroBar label="Fat" value={plan.meals.filter(m => m.completed).reduce((s, m) => s + m.fat, 0)} max={plan.fat} color="#FF6B35" />
-          </Card>
-        </View>
+        {/* Nutrition/Macros Card */}
+        <Card style={{ marginTop: 12 }}>
+          <Text style={{ color: theme.text.primary, fontSize: 16, marginBottom: 12, fontWeight: '600' }}>
+            Daily Macros
+          </Text>
+          <MacroBar label="Protein" value={totals.protein} max={dietPlan?.protein || 1} color="#00F5A0" />
+          <MacroBar label="Carbs" value={totals.carbs} max={dietPlan?.carbs || 1} color="#00D9F5" />
+          <MacroBar label="Fat" value={totals.fat} max={dietPlan?.fat || 1} color="#FF6B35" />
+        </Card>
       </ScrollView>
     </View>
   );
@@ -84,18 +68,6 @@ export default function ClientDashboard() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', borderBottomWidth: 1 },
-  headerRight: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  streakBadge: { flexDirection: 'row', alignItems: 'center', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
-  avatarBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  progressBanner: { margin: 20, borderRadius: 20, padding: 24, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  bannerLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 2, color: 'rgba(0,0,0,0.6)' },
-  bannerValue: { fontSize: 44, fontWeight: '800', color: '#000', letterSpacing: -2, lineHeight: 52 },
-  bannerSub: { color: 'rgba(0,0,0,0.6)', fontSize: 13 },
-  padded: { paddingHorizontal: 20 },
-  calCard: { padding: 16, marginBottom: 24 },
-  calHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  calNums: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  calItem: { flex: 1, alignItems: 'center' },
-  calDivider: { width: 1, height: 50, marginHorizontal: 16 },
+  header: { paddingTop: 56, paddingHorizontal: 20, paddingBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  content: { padding: 16 },
 });

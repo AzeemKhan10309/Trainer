@@ -1,176 +1,105 @@
 import React from 'react';
-import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-} from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { Card, Avatar, Badge, StatCard, SectionHeader } from '../../components/ui';
-import { CLIENTS, NOTIFICATIONS, ANALYTICS_DATA } from '../../data/mockData';
-import { typography } from '../../theme/colors'; // removed spacing, radius
+import { Card, Avatar, StatCard, SectionHeader, ProgressBar } from '../../components/ui';
+import { useTrainerRealtime } from '../../services/realtime';
 
 export default function TrainerDashboard() {
   const { theme } = useTheme();
   const { user, logout } = useAuth();
+  
+  // Real-time data stream for the entire dashboard
+  const { clients, notifications, analytics } = useTrainerRealtime(user?.id);
 
-  const unreadNotifs = NOTIFICATIONS.filter(n => !n.read).length;
-
-  const todayStats = {
-    mealsCompleted: CLIENTS.reduce((sum, c) => sum + c.meals.completed, 0),
-    totalMeals: CLIENTS.reduce((sum, c) => sum + c.meals.total, 0),
-    activeClients: CLIENTS.filter(c => c.status === 'active').length,
-    avgStreak: Math.round(CLIENTS.reduce((sum, c) => sum + c.streak, 0) / CLIENTS.length),
-  };
-
-  const recentNotifs = NOTIFICATIONS.slice(0, 4);
+  // Calculate compliance percentage for the header
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg.primary }]}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border.subtle }]}>
-        <View style={styles.headerLeft}>
-          <Text style={[typography.label, { color: theme.accent.primary }]}>GOOD MORNING</Text>
-          <Text style={[typography.h1, { color: theme.text.primary }]}>{user.name.split(' ')[0]} 👋</Text>
+      {/* Dynamic Header */}
+      <View style={[styles.header, { borderBottomColor: theme.border.subtle, backgroundColor: theme.bg.primary }]}> 
+        <View>
+          <Text style={{ color: theme.accent.primary, fontSize: 12, fontWeight: '700', letterSpacing: 1 }}>OVERVIEW</Text>
+          <Text style={[styles.title, { color: theme.text.primary }]}>Hi {user?.name?.split(' ')[0] || 'Trainer'} 👋</Text>
         </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={[styles.iconBtn, { backgroundColor: theme.bg.elevated }]}>
-            <View>
-              <Text style={{ fontSize: 18 }}>🔔</Text>
-              {unreadNotifs > 0 && (
-                <View style={[styles.notifBadge, { backgroundColor: theme.accent.tertiary }]}>
-                  <Text style={styles.notifBadgeText}>{unreadNotifs}</Text>
-                </View>
-              )}
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={logout} style={[styles.iconBtn, { backgroundColor: theme.bg.elevated }]}>
-            <Avatar name={user.name} size={36} color={theme.accent.primary} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={logout}>
+          <Avatar name={user?.name || 'Trainer'} size={44} color={theme.accent.primary} />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Hero Banner */}
-        <LinearGradient
-          colors={['#00F5A0', '#00C47D']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={styles.heroBanner}
-        >
-          <View style={styles.heroContent}>
-            <Text style={styles.heroLabel}>TODAY&apos;S OVERVIEW</Text>
-            <Text style={styles.heroValue}>{todayStats.mealsCompleted}/{todayStats.totalMeals}</Text>
-            <Text style={styles.heroSub}>Meals completed across all clients</Text>
-          </View>
-          <View style={styles.heroRight}>
-            <View style={styles.heroPill}>
-              <Text style={{ color: '#000', fontWeight: '700', fontSize: 13 }}>
-                {Math.round((todayStats.mealsCompleted / todayStats.totalMeals) * 100)}% compliance
-              </Text>
-            </View>
-            <Text style={{ fontSize: 48, marginTop: 4 }}>🥗</Text>
-          </View>
-        </LinearGradient>
-
-        <View style={styles.padded}>
-          {/* Stat Cards Row */}
-          <View style={styles.statsRow}>
-            <StatCard
-              label="ACTIVE CLIENTS"
-              value={todayStats.activeClients}
-              icon="👥"
-              color={theme.accent.primary}
-              subtitle="+2 this week"
-              style={{ marginRight: 8 }}
-            />
-            <StatCard
-              label="AVG STREAK"
-              value={`${todayStats.avgStreak}d`}
-              icon="🔥"
-              color={theme.accent.tertiary}
-              subtitle="Team average"
-            />
-          </View>
-
-          <View style={[styles.statsRow, { marginTop: 8 }]}>
-            <StatCard
-              label="COMPLIANCE"
-              value={`${ANALYTICS_DATA.avgCompliance}%`}
-              icon="✅"
-              color={theme.status.success}
-              subtitle="This month"
-              style={{ marginRight: 8 }}
-            />
-            <StatCard
-              label="REVENUE"
-              value={`$${ANALYTICS_DATA.revenue}`}
-              icon="💰"
-              color={theme.accent.gold}
-              subtitle="This month"
-            />
-          </View>
-
-          {/* Notifications Feed */}
-          <SectionHeader title="Recent Alerts" action="See all" />
-          <View style={styles.notifList}>
-            {recentNotifs.map(notif => (
-              <Card key={notif.id} style={[
-                styles.notifCard,
-                !notif.read && { borderColor: theme.accent.primary + '40', borderLeftWidth: 3, borderLeftColor: theme.accent.primary }
-              ]}>
-                <View style={styles.notifRow}>
-                  <View style={[styles.notifIcon, { backgroundColor: theme.bg.elevated }]}>
-                    <Text style={{ fontSize: 18 }}>{notif.icon}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[{ color: theme.text.primary, fontWeight: '600', fontSize: 14 }]}>
-                      {notif.client}
-                    </Text>
-                    <Text style={[{ color: theme.text.secondary, fontSize: 13, marginTop: 2 }]}>
-                      {notif.message}
-                    </Text>
-                  </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={[{ color: theme.text.muted, fontSize: 11 }]}>{notif.time}</Text>
-                    {!notif.read && (
-                      <View style={[styles.unreadDot, { backgroundColor: theme.accent.primary }]} />
-                    )}
-                  </View>
-                </View>
-              </Card>
-            ))}
-          </View>
-
-          {/* Client Quick View */}
-          <SectionHeader title="Client Activity" action="View all" />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.clientScroll}>
-            {CLIENTS.map(client => (
-              <Card key={client.id} style={styles.clientCard} onPress={() => {}}>
-                <View style={styles.clientCardHeader}>
-                  <Avatar name={client.name} size={44} color={client.status === 'active' ? theme.accent.primary : theme.text.muted} />
-                  <View style={[styles.statusDot, { backgroundColor: client.status === 'active' ? theme.status.success : theme.text.muted }]} />
-                </View>
-                <Text style={[{ color: theme.text.primary, fontWeight: '700', fontSize: 14, marginTop: 8 }]} numberOfLines={1}>
-                  {client.name.split(' ')[0]}
-                </Text>
-                <Text style={[{ color: theme.text.muted, fontSize: 11, marginTop: 2 }]}>{client.goal}</Text>
-
-                {/* Meal progress bar */}
-                <View style={styles.mealProgressBar}>
-                  <View style={[styles.mealProgressFill, {
-                    backgroundColor: theme.accent.primary,
-                    width: `${(client.meals.completed / client.meals.total) * 100}%`
-                  }]} />
-                </View>
-                <Text style={[{ color: theme.text.secondary, fontSize: 11, marginTop: 4 }]}>
-                  {client.meals.completed}/{client.meals.total} meals
-                </Text>
-                {client.streak > 0 && (
-                  <Badge label={`🔥 ${client.streak}d`} color={theme.accent.tertiary} size="sm" />
-                )}
-              </Card>
-            ))}
-          </ScrollView>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Real-time Business Stats */}
+        <View style={styles.row}>
+          <StatCard 
+            label="CLIENTS" 
+            value={analytics.totalClients || 0} 
+            icon="👥" 
+            color={theme.accent.primary} 
+            style={styles.card} 
+          />
+          <StatCard 
+            label="ACTIVE" 
+            value={analytics.activeClients || 0} 
+            icon="✅" 
+            color={theme.status.success} 
+            style={styles.card} 
+          />
         </View>
+
+        <View style={styles.row}>
+          <StatCard 
+            label="MEALS" 
+            value={`${analytics.mealsCompleted || 0}/${analytics.totalMeals || 0}`} 
+            icon="🍽️" 
+            color={theme.accent.secondary} 
+            style={styles.card} 
+          />
+          <StatCard 
+            label="REVENUE" 
+            value={`$${analytics.revenue || 0}`} 
+            icon="💰" 
+            color={theme.accent.gold} 
+            style={styles.card} 
+          />
+        </View>
+
+        {/* Live Notification Feed */}
+        <SectionHeader title="Recent Alerts" action="Clear" />
+        {notifications.data?.length > 0 ? (
+          notifications.data.slice(0, 3).map((n) => (
+            <Card key={n.id} style={styles.listCard}>
+              <View style={styles.notifRow}>
+                <Text style={{ fontSize: 20, marginRight: 12 }}>{n.icon || '🔔'}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: theme.text.primary, fontWeight: '700' }}>{n.title}</Text>
+                  <Text style={{ color: theme.text.secondary, fontSize: 13 }}>{n.body || n.message}</Text>
+                </View>
+                <Text style={{ color: theme.text.muted, fontSize: 10 }}>{n.time || 'Just now'}</Text>
+              </View>
+            </Card>
+          ))
+        ) : (
+          <Text style={{ color: theme.text.muted, textAlign: 'center', marginVertical: 10 }}>No new alerts</Text>
+        )}
+
+        {/* Client Performance Quick-View */}
+        <SectionHeader title="Top Performers" action="View All" />
+        {clients.data?.slice(0, 4).map((c) => (
+          <Card key={c.id} style={styles.listCard}>
+            <View style={styles.clientRow}>
+              <Avatar name={c.name} size={32} color={theme.accent.primary} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={{ color: theme.text.primary, fontWeight: '600' }}>{c.name || c.email}</Text>
+                <ProgressBar 
+                  progress={(c.compliance || 0) / 100} 
+                  color={theme.accent.primary} 
+                  style={{ marginTop: 8 }} 
+                />
+              </View>
+              <Text style={{ color: theme.text.primary, fontWeight: '700', marginLeft: 12 }}>{c.compliance || 0}%</Text>
+            </View>
+          </Card>
+        ))}
       </ScrollView>
     </View>
   );
@@ -178,30 +107,12 @@ export default function TrainerDashboard() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', borderBottomWidth: 1 },
-  headerLeft: {},
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  iconBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  notifBadge: { position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  notifBadgeText: { color: '#fff', fontSize: 9, fontWeight: '800' },
-  heroBanner: { margin: 20, borderRadius: 20, padding: 24, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  heroContent: {},
-  heroLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 2, color: '#00000080' },
-  heroValue: { fontSize: 48, fontWeight: '800', color: '#000', letterSpacing: -2, lineHeight: 56 },
-  heroSub: { color: '#00000070', fontSize: 13, marginTop: 2 },
-  heroRight: { alignItems: 'center' },
-  heroPill: { backgroundColor: '#00000020', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
-  padded: { paddingHorizontal: 20 },
-  statsRow: { flexDirection: 'row' },
-  notifList: { marginBottom: 24 },
-  notifCard: { padding: 14 },
-  notifRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  notifIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  unreadDot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
-  clientScroll: { marginHorizontal: -20, paddingHorizontal: 20, marginBottom: 24 },
-  clientCard: { width: 130, marginRight: 12, padding: 14 },
-  clientCardHeader: { position: 'relative' },
-  statusDot: { position: 'absolute', bottom: 2, right: 2, width: 12, height: 12, borderRadius: 6, borderWidth: 2, borderColor: '#13131F' },
-  mealProgressBar: { height: 4, backgroundColor: '#2A2A40', borderRadius: 2, overflow: 'hidden', marginTop: 10 },
-  mealProgressFill: { height: '100%', borderRadius: 2 },
+  header: { paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1 },
+  title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
+  content: { padding: 16, paddingBottom: 40 },
+  row: { flexDirection: 'row', gap: 10, marginBottom: 10 },
+  card: { flex: 1 },
+  listCard: { marginBottom: 10, padding: 12 },
+  notifRow: { flexDirection: 'row', alignItems: 'center' },
+  clientRow: { flexDirection: 'row', alignItems: 'center' },
 });
